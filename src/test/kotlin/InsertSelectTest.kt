@@ -14,15 +14,19 @@ class InsertSelectTest : BaseTest() {
 
     object PersonTable : Table("person") {
         val name = text("name")
-
         val mood = mood("mood")
+    }
+
+    @Test
+    fun testCreateTable() {
+        withTable(PersonTable) {
+            addLogger(StdOutSqlLogger)
+        }
     }
 
     @Test
     fun test1() {
         withTable(PersonTable) {
-            addLogger(StdOutSqlLogger)
-
             PersonTable.insert {
                 it[name] = "John"
                 it[mood] = Mood.SAD
@@ -46,10 +50,8 @@ class InsertSelectTest : BaseTest() {
 
             PersonTable.insert {
                 it[name] = "John"
-//                it[mood] = Mood.SAD
                 it[mood] = moodLiteral(Mood.SAD)
             }
-
         }
     }
 

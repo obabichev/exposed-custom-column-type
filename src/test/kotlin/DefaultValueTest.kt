@@ -24,7 +24,6 @@ class DefaultValueTest : BaseTest() {
 
             SchemaUtils.drop(PersonTable)
 
-            // Without implementation: CREATE TABLE IF NOT EXISTS person ("name" TEXT NOT NULL, mood mood DEFAULT ok NOT NULL)
             SchemaUtils.create(PersonTable)
 
             PersonTable.insert {

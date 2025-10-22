@@ -8,30 +8,33 @@ import org.jetbrains.exposed.v1.core.Table
 import org.jetbrains.exposed.v1.core.statements.api.PreparedStatementApi
 import org.postgresql.util.PGobject
 
-
 class PostgresEnumerationColumnType<T : Enum<T>>(
     val typeName: String,
-    enumClass: Class<T>,
+    val enumClass: Class<T>
 ) : ColumnType<T>() {
+    override fun sqlType() = typeName
 
     private val stringToEnumeration = enumClass.enumConstants.associateBy { it.name.lowercase() }
 
     private val enumerationToString = stringToEnumeration.map { (k, v) -> v to k }.toMap()
 
-    fun toEnumeration(name: String): T = stringToEnumeration[name.lowercase()]!!
+    private fun toEnumeration(name: String): T = stringToEnumeration[name.lowercase()]!!
 
-    fun fromEnumeration(value: T): String = enumerationToString[value]!!
+    private fun fromEnumeration(value: T): String = enumerationToString[value]!!
 
-    override fun sqlType(): String {
-        return typeName
-    }
 
     override fun valueFromDB(value: Any): T? {
         return when (value) {
             is String -> toEnumeration(value.uppercase())
-            else -> error("Unexpected value of type Int: $value of ${value::class.qualifiedName}")
+            else -> error("Unexpected value $value of type ${value::class.qualifiedName}")
         }
     }
+
+    override fun nonNullValueAsDefaultString(value: T) =
+        nonNullValueToString(value)
+
+    override fun nonNullValueToString(value: T) =
+        fromEnumeration(value).lowercase().let { "'$it'::${sqlType()}" }
 
     override fun notNullValueToDB(value: T): Any {
         return fromEnumeration(value).lowercase()
@@ -55,28 +58,15 @@ class PostgresEnumerationColumnType<T : Enum<T>>(
                 }
         }
     }
-
-    override fun nonNullValueAsDefaultString(value: T): String {
-        return nonNullValueToString(value)
-    }
-
-    override fun nonNullValueToString(value: T): String {
-        return fromEnumeration(value).lowercase().let { "'$it'::${sqlType()}" }
-    }
-
-//    override fun createStatement(): List<String> {
-//        val values = enumeration.joinToString { "'$it'" }
-//
-//        return listOf(
-//            "CREATE TYPE ${sqlType()} AS ENUM ($values);"
-//        )
-//    }
 }
 
 fun moodColumnType(): ColumnType<Mood> = PostgresEnumerationColumnType("mood", Mood::class.java)
 
-fun Table.mood(name: String): Column<Mood> =
-    registerColumn(name, moodColumnType())
+fun <T : Enum<T>> Table.pgEnum(name: String, typeName: String, enumClass: Class<T>): Column<T> =
+    registerColumn(name, PostgresEnumerationColumnType(typeName, enumClass))
 
-fun moodLiteral(value: Mood): LiteralOp<Mood> = LiteralOp(moodColumnType(), value)
+fun Table.mood(name: String): Column<Mood> = pgEnum(name, "mood", Mood::class.java)
+
+fun moodLiteral(value: Mood): LiteralOp<Mood> =
+    LiteralOp(PostgresEnumerationColumnType("mood", Mood::class.java), value)
 

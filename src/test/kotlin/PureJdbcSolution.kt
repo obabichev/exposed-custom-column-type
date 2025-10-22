@@ -25,13 +25,6 @@ class PureJdbcSolution {
                 deleteStmt.executeUpdate()
             }
 
-            // Insert a row
-//            connection.prepareStatement("INSERT INTO person (name, mood) VALUES (?, ?::mood)").use { insertStmt ->
-//                insertStmt.setString(1, "John")
-//                insertStmt.setString(2, "happy")
-//                insertStmt.executeUpdate()
-//            }
-
             connection.prepareStatement("INSERT INTO person (name, mood) VALUES (?, ?)").use { insertStmt ->
                 insertStmt.setString(1, "John")
 
